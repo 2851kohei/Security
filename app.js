@@ -6,11 +6,14 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const encrypt = require("mongoose-encryption");
+const md5 = require("md5");
+
+
 
 const app = express();
 
-console.log(process.env.API_KEY);
+// console.log(process.env.API_KEY);
+// console.log(md5("123456"));
 
 app.use(express.static("public"));
 app.set('view engine', 'ejs');
@@ -30,8 +33,8 @@ const userSchema = new mongoose.Schema({
 
 // usage of encryption
  // const secret = "Thisisourlittlesecret.";
-// secret: secret, encryptedFields: ["password" ] : which is that encrypt wants to hidden
-userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"] });
+// // secret: secret, encryptedFields: ["password" ] : which is that encrypt wants to hidden
+// userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"] });
 
 
 const User = new mongoose.model("User", userSchema);
@@ -51,7 +54,8 @@ app.get("/register", function(req, res) {
 app.post("/register", function(req, res) {
   const newUser = new User({
     email: req.body.username,
-    password: req.body.password
+    // take password into irreversible hash
+    password: md5(req.body.password)
   });
 
  // encrypt my password field when save
@@ -66,7 +70,7 @@ app.post("/register", function(req, res) {
 
 app.post("/login", function(req,res){
   const username = req.body.username;
-  const password = req.body.password;
+  const password = md5(req.body.password);
 
   // email: the data in database
   // mongoose will decrypt when find
