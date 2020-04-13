@@ -6,7 +6,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const md5 = require("md5");
+// const md5 = require("md5");
+
+// stronger than hash
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 
 
@@ -52,25 +56,31 @@ app.get("/register", function(req, res) {
 });
 
 app.post("/register", function(req, res) {
-  const newUser = new User({
-    email: req.body.username,
-    // take password into irreversible hash
-    password: md5(req.body.password)
-  });
 
- // encrypt my password field when save
-  newUser.save(function(err) {
-    if (err) {
-      console.log(err);
-    } else {
-      res.render("secrets")
-    }
-  });
+  bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+    // Store hash in your password DB.
+    const newUser = new User({
+      email: req.body.username,
+      // take password into irreversible hash
+      password: hash
+    });
+
+   // encrypt my password field when save
+    newUser.save(function(err) {
+      if (err) {
+        console.log(err);
+      } else {
+        res.render("secrets")
+      }
+    });
+});
+
+
 });
 
 app.post("/login", function(req,res){
   const username = req.body.username;
-  const password = md5(req.body.password);
+  const password = req.body.password;
 
   // email: the data in database
   // mongoose will decrypt when find
@@ -79,12 +89,18 @@ app.post("/login", function(req,res){
       console.log(err);
     }
     else{
-      // the user exists
+      // the user(email,password) exists
       if(foundUser){
-        // the data in database === password that user enter
-        if(foundUser.password === password){
-          res.render("secrets");
-        }
+
+        bcrypt.compare(password, foundUser.password, function(err, result) {
+             // result == true
+             // password after hashing === passwprd in database
+             if(result === true){
+                res.render("secrets");
+             }
+        });
+
+
       }
     }
   });
